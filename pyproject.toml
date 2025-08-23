@@ -1,0 +1,23 @@
+[project]
+name = "ndimensionalspectra"
+version = "0.1.0"
+description = "Multi-dimensional spectra Q&A system with CLI and API interfaces"
+readme = "README.md"
+authors = [
+    { name = "sempervent", email = "jngrant9+git@gmail.com" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.1.8",
+    "fastapi>=0.116.1",
+    "pydantic>=2.11.7",
+    "uvicorn[standard]>=0.35.0",
+]
+
+[project.scripts]
+om = "ndimensionalspectra.ontogenic_cli:om"
+om-api = "ndimensionalspectra.__main__:main_api"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
