@@ -236,7 +236,7 @@ def post_survey_install_run(responses: Dict[str, int], passes: int = 3) -> Dict[
         "notes": placement.notes,
     })
     # Bridge to runtime engine
-    from ontogenic_machine import State as RuntimeState, OntogenicMachine
+    from .ontogenic_machine import State as RuntimeState, OntogenicMachine
     rt = RuntimeState(
         beliefs=dict(state.beliefs),
         traits=dict(state.traits),
@@ -296,7 +296,7 @@ def json_schema(model: str = "state") -> Dict[str, Any]:
 
 def to_runtime_state(state: StateModel):
     """Factory: Pydantic StateModel -> runtime ontogenic_machine.State"""
-    from ontogenic_machine import State as RuntimeState
+    from .ontogenic_machine import State as RuntimeState
     return RuntimeState(
         beliefs=dict(state.beliefs),
         traits=dict(state.traits),

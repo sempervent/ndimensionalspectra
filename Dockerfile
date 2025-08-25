@@ -7,7 +7,7 @@ FROM ghcr.io/astral-sh/uv:python3.11-bookworm AS builder
 WORKDIR /app
 
 # Speedy layer caching: copy metadata first
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 # Copy source last
 COPY src ./src
 
@@ -31,8 +31,7 @@ RUN useradd -m -u 10001 appuser
 # Copy venv and code
 COPY --from=builder /app/.venv ./.venv
 COPY --from=builder /app/src ./src
-COPY pyproject.toml ./pyproject.toml
-COPY LICENSE README.md ./
+COPY pyproject.toml README.md LICENSE ./
 
 # Runtime defaults
 EXPOSE 8080

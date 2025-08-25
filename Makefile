@@ -22,20 +22,38 @@ test: ## Run tests
 clean: ## Clean build artifacts
 	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .coverage
 
-docker-build: ## Build Docker image
-	docker build -t ndimensionalspectra .
+docker-build: ## Build Docker images with buildx bake
+	docker buildx bake
 
-docker-run: ## Run Docker container in API mode
-	docker run -p 8080:8080 ndimensionalspectra
+docker-build-api: ## Build API Docker image
+	docker buildx bake api
 
-docker-cli: ## Run Docker container in CLI mode (usage: make docker-cli ARGS="schema")
-	docker run -e OM_MODE=cli -e OM_ARGS="$(ARGS)" ndimensionalspectra
+docker-build-ui: ## Build UI Docker image
+	docker buildx bake ui
 
-docker-compose-up: ## Start services with docker-compose
+docker-build-nginx: ## Build NGINX Docker image
+	docker buildx bake nginx
+
+docker-push: ## Push all Docker images to registry
+	docker buildx bake push
+
+docker-run-api: ## Run API container
+	docker run -d --name api -p 8080:8080 ghcr.io/your-org/ndimensionalspectra-api:latest
+
+docker-run-ui: ## Run UI container
+	docker run -d --name ui -e API_BASE=http://nginx/api ghcr.io/your-org/ndimensionalspectra-ui:latest
+
+docker-run-nginx: ## Run NGINX container
+	docker run -d --name nginx -p 80:80 --link api --link ui ghcr.io/your-org/ndimensionalspectra-nginx:latest
+
+docker-compose-up: ## Start all services with docker-compose
 	docker-compose up -d
 
-docker-compose-down: ## Stop services with docker-compose
+docker-compose-down: ## Stop all services with docker-compose
 	docker-compose down
 
 docker-compose-logs: ## View docker-compose logs
-	docker-compose logs -f 
+	docker-compose logs -f
+
+docker-compose-build: ## Build all services with docker-compose
+	docker-compose build 
