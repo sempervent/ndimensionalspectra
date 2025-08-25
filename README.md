@@ -1,249 +1,296 @@
-# ndimensionalspectra
+# N-Dimensional Spectra Explorer
 
-Multi-dimensional spectra Q&A system with CLI, API, and web interfaces for survey processing, scoring, and continuum placement.
+A comprehensive visualization platform for exploring multidimensional psychological spectra through interactive surveys, advanced analytics, and projection techniques.
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 [Browser] → NGINX :80
     ├─ /api/* → FastAPI (api:8080)
-    └─ /      → NiceGUI (ui:8081)
+    └─ / → NiceGUI (ui:8081)
 ```
 
-## Installation
+## 🚀 Quick Start
+
+### Using Docker Compose (Recommended)
 
 ```bash
-# Install with uv (recommended)
+# Clone and setup
+git clone <repository>
+cd ndimensionalspectra
+
+# Start all services
+docker compose up -d
+
+# Access the application
+open http://localhost/
+```
+
+### Manual Docker Run
+
+```bash
+# Build images
+docker buildx bake
+
+# Run services individually
+docker run -d --name api ndimensionalspectra-api:latest
+docker run -d --name ui -e API_BASE=http://nginx/api ndimensionalspectra-ui:latest
+docker run -d --name nginx -p 80:80 --link api --link ui ndimensionalspectra-nginx:latest
+```
+
+## 📊 Features
+
+### 🎯 Survey Interface
+- **Interactive Likert Scales**: 1-7 rating sliders for each survey item
+- **Real-time Response Tracking**: Automatic saving of responses as you move sliders
+- **User Configuration**: Set user ID, notes, and number of passes
+- **Instant Results**: View placement coordinates and stability scores immediately
+
+### 📈 Dashboard Visualizations
+- **3D PAD Space**: Interactive 3D scatter plot of Valence, Arousal, and Dominance
+- **2D PAD with Density**: 2D scatter with kernel density estimation contours
+- **Trait Radar Charts**: Spider/radar plots comparing current run vs cohort averages
+- **Statistics Cards**: Total runs, average stability, and date range summaries
+
+### 📚 History Analysis
+- **Stability Time Series**: Line charts showing stability trends over time
+- **PAD Trajectory**: 2D path visualization with directional arrows
+- **Run History Table**: Sortable table with export capabilities
+- **Interactive Filtering**: Date ranges and user-specific views
+
+### 🔍 Multi-User Comparison
+- **2D Comparison Scatter**: Color-coded points by user
+- **3D Comparison Scatter**: 3D visualization with user legends
+- **Parallel Coordinates**: Multi-dimensional trait comparison across users
+- **Dynamic User Selection**: Comma-separated user ID input
+
+### 🧠 Advanced Embeddings
+- **PCA Projections**: Principal Component Analysis for dimensionality reduction
+- **t-SNE Visualizations**: t-Distributed Stochastic Neighbor Embedding
+- **2D/3D Support**: Toggle between 2D and 3D projection views
+- **Explained Variance**: Bar charts showing PCA component importance
+- **Interactive Controls**: Technique selection and dimension toggles
+
+### 🔬 Diagnostic Analytics
+- **Correlation Heatmaps**: Trait correlation matrices with color coding
+- **Corner Plots**: Pairwise trait distributions and relationships
+- **Outlier Analysis**: Statistical outlier detection and visualization
+- **Comprehensive Statistics**: Full dataset analysis and insights
+
+## 🛠️ API Endpoints
+
+### Core Endpoints
+- `GET /api/health` - Health check
+- `GET /api/survey` - Get survey questions
+- `POST /api/run` - Legacy run endpoint (optional persistence)
+- `POST /api/runs` - Create persistent run
+- `GET /api/runs` - List runs with filtering and pagination
+- `GET /api/runs/{id}` - Get specific run
+- `GET /api/runs/stats` - Get run statistics and aggregates
+
+### Comparison & Analysis
+- `GET /api/compare` - Compare runs across multiple users
+- `POST /api/viz/project` - Generate projection visualizations
+
+### Projection Parameters
+```json
+{
+  "technique": "pca|tsne",
+  "dims": 2|3,
+  "user_ids": ["user1", "user2"],
+  "survey_id": "optional",
+  "since": "2025-01-01T00:00:00Z",
+  "until": "2025-12-31T23:59:59Z",
+  "features": ["valence", "arousal", "dominance"],
+  "limit_per_user": 100
+}
+```
+
+## 🗄️ Database
+
+### Persistence Options
+- **PostgreSQL**: Primary database (when `DATABASE_URL` is set)
+- **SQLite**: Fallback database (`./data/om.db`)
+
+### Schema
+```sql
+runs (
+  id UUID PRIMARY KEY,
+  user_id TEXT,
+  survey_id TEXT,
+  passes INTEGER,
+  created_at TIMESTAMP,
+  coords2d_x REAL,
+  coords2d_y REAL,
+  coords3d_v REAL,
+  coords3d_a REAL,
+  coords3d_d REAL,
+  stability REAL,
+  scores JSONB,
+  final_state JSONB,
+  notes TEXT
+)
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+- `API_BASE`: API base URL (default: `http://api:8080`)
+- `UI_PORT`: UI port (default: `8081`)
+- `DATABASE_URL`: PostgreSQL connection string
+- `BEHIND_PROXY`: Set to `true` when behind NGINX
+
+### Docker Compose Services
+- **api**: FastAPI backend with PostgreSQL/SQLite
+- **ui**: NiceGUI frontend with visualization components
+- **nginx**: Reverse proxy with WebSocket support
+- **db**: PostgreSQL database (optional)
+
+## 📦 Dependencies
+
+### Core
+- **FastAPI**: Modern web framework for APIs
+- **NiceGUI**: Interactive web UI framework
+- **SQLAlchemy**: Database ORM
+- **Pydantic**: Data validation
+
+### Visualization
+- **Plotly**: Interactive plotting library
+- **Pandas**: Data manipulation
+- **NumPy**: Numerical computing
+- **SciPy**: Scientific computing
+
+### Machine Learning
+- **scikit-learn**: PCA and t-SNE implementations
+- **Kernel Density Estimation**: For density contours
+
+## 🚀 Development
+
+### Local Development
+```bash
+# Install dependencies
 uv sync
 
-# Or with pip
-pip install -e .
+# Run API
+uvicorn src.ndimensionalspectra.ontogenic_api:app --reload
+
+# Run UI
+python -m src.ndimensionalspectra.nicegui_app
 ```
 
-## Usage
-
-### CLI Interface
-
-The CLI provides commands for survey operations:
-
+### Building Images
 ```bash
-# Get JSON schema for models
-om schema --model all
-
-# Generate survey JSON
-om survey
-
-# Score responses from file
-om score --responses responses.json
-
-# Score responses from stdin
-echo '{"1": 5, "2": 3}' | om score --responses -
-
-# Place on continuum
-om place --responses responses.json
-
-# Run post-survey install & glyph engine
-om run --responses responses.json --passes 3
-```
-
-### API Interface
-
-Start the API server:
-
-```bash
-# Using the module entrypoint
-python -m ndimensionalspectra --api
-
-# Using the helper script
-om-api
-
-# Using uvicorn directly
-uvicorn ndimensionalspectra.ontogenic_api:app --host 0.0.0.0 --port 8080
-```
-
-#### API Endpoints
-
-- `GET /health` - Health check
-- `GET /schema/{model}` - Get JSON schema for models
-- `GET /survey` - Get survey specification
-- `POST /score` - Score Likert responses
-- `POST /place` - Place on continuum
-- `POST /run` - Run post-survey install & glyph engine
-
-#### Example API Usage
-
-```bash
-# Get survey
-curl http://localhost:8080/survey
-
-# Score responses
-curl -X POST http://localhost:8080/score \
-  -H "Content-Type: application/json" \
-  -d '{"responses": {"1": 5, "2": 3, "3": 4}}'
-
-# Run post-survey
-curl -X POST http://localhost:8080/run \
-  -H "Content-Type: application/json" \
-  -d '{"responses": {"1": 5, "2": 3, "3": 4}, "passes": 3}'
-```
-
-### Web Interface
-
-Start the NiceGUI web interface:
-
-```bash
-# Run the web interface
-python -m ndimensionalspectra.nicegui_app
-
-# Or set custom API base for local development
-API_BASE=http://127.0.0.1:8080 python -m ndimensionalspectra.nicegui_app
-```
-
-## Docker
-
-### Build and Run with Docker Compose (Recommended)
-
-```bash
-# Build and start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-```
-
-### Build and Run Individual Containers
-
-```bash
-# Build all images with buildx bake
+# Build all images
 docker buildx bake
 
-# Run API container
-docker run -d --name api -p 8080:8080 ghcr.io/your-org/ndimensionalspectra-api:latest
-
-# Run UI container
-docker run -d --name ui -e API_BASE=http://nginx/api ghcr.io/your-org/ndimensionalspectra-ui:latest
-
-# Run NGINX container
-docker run -d --name nginx -p 80:80 --link api --link ui ghcr.io/your-org/ndimensionalspectra-nginx:latest
-```
-
-### Docker Buildx Bake
-
-```bash
-# Build all images locally
-docker buildx bake
-
-# Build specific images
+# Build specific target
 docker buildx bake api
 docker buildx bake ui
 docker buildx bake nginx
 
 # Push to registry
 docker buildx bake push
-
-# Build and push with custom settings
-docker buildx bake push \
-  --set *.platforms=linux/amd64,linux/arm64 \
-  --set api.tags=ghcr.io/your-org/ndimensionalspectra-api:0.1.0 \
-  --set ui.tags=ghcr.io/your-org/ndimensionalspectra-ui:0.1.0 \
-  --set nginx.tags=ghcr.io/your-org/ndimensionalspectra-nginx:0.1.0
 ```
 
-### Endpoints Behind NGINX
+## 🧪 Testing
 
-When running with Docker Compose or the unified setup:
-
-- `GET /` → NiceGUI web interface
-- `GET /api/survey` → Survey specification
-- `POST /api/run` → Run survey analysis (legacy, optionally persists)
-- `POST /api/runs` → Create persistent run
-- `GET /api/runs` → List runs with filtering and pagination
-- `GET /api/runs/{id}` → Get specific run
-- `GET /api/compare` → Compare runs across users
-- `GET /health` → NGINX health check
-
-### Environment Variables
-
-- `API_BASE` - API base URL for UI (default: `http://api:8080` in docker, `http://127.0.0.1:8080` for local)
-- `HOST` - FastAPI host (default: `0.0.0.0`)
-- `PORT` - FastAPI port (default: `8080`)
-- `UI_PORT` - NiceGUI port (default: `8081`)
-- `DATABASE_URL` - Database connection string (default: SQLite at `./data/om.db`)
-
-### Database Persistence
-
-The API persists runs to Postgres when `DATABASE_URL` is set, otherwise to `./data/om.db` (SQLite).
-
-**Postgres (recommended for production):**
+### Acceptance Tests
 ```bash
-DATABASE_URL=postgresql+psycopg://user:pass@host:5432/db
+# Health check
+curl -s http://localhost/api/health
+
+# Survey loading
+curl -s http://localhost/api/survey | jq .
+
+# Projection test
+curl -s -X POST http://localhost/api/viz/project \
+  -H 'Content-Type: application/json' \
+  -d '{"technique":"pca","dims":2}' | jq .
+
+# UI accessibility
+curl -s http://localhost/ | grep -q "NiceGUI"
 ```
 
-**SQLite (default for development):**
-```bash
-# No DATABASE_URL needed - automatically uses ./data/om.db
-```
+## 📈 Performance
 
-### Enhanced UI Features
+### Optimization Features
+- **Server-side Caching**: Projection results cached by parameters
+- **Pagination**: Large datasets handled efficiently
+- **Downsampling**: Automatic point reduction for large visualizations
+- **Lazy Loading**: Visualizations load on demand
 
-The NiceGUI interface now includes:
+### Scaling Considerations
+- **Database Indexing**: Optimized queries with proper indexes
+- **Connection Pooling**: Efficient database connections
+- **WebSocket Stability**: Reliable real-time updates
+- **Memory Management**: Efficient handling of large datasets
 
-- **Survey Configuration**: User ID, notes, and passes input
-- **Tabbed Interface**: Survey, Results, History, and Compare tabs
-- **Interactive Plots**: 
-  - 2D placement scatter plots over time
-  - 3D PAD coordinate visualization
-  - Stability over time line charts
-  - Multi-user comparison plots
-- **History Management**: View and refresh user run history
-- **User Comparison**: Compare runs across multiple users
+## 🔒 Security
 
-## Development
+### Features
+- **Input Validation**: All inputs validated with Pydantic
+- **SQL Injection Protection**: Parameterized queries
+- **Rate Limiting**: API endpoint protection
+- **CORS Configuration**: Proper cross-origin handling
 
-```bash
-# Install development dependencies
-uv sync --dev
+### Best Practices
+- **Non-root Containers**: All services run as non-root users
+- **Health Checks**: Comprehensive health monitoring
+- **Environment Isolation**: Proper secret management
+- **Network Security**: Isolated Docker networks
 
-# Run tests
-pytest
+## 📝 Usage Examples
 
-# Format code
-black src/
+### Basic Survey Flow
+1. Open `http://localhost/`
+2. Enter User ID in configuration
+3. Complete survey using Likert sliders
+4. Click "Run Survey Analysis"
+5. View results in Dashboard tab
 
-# Lint code
-flake8 src/
+### Multi-User Comparison
+1. Navigate to Compare tab
+2. Enter user IDs: `alice,bob,charlie`
+3. Click "Compare"
+4. Explore 2D/3D scatter plots
+5. Analyze parallel coordinates
 
-# Build Docker images
-make docker-build
+### Advanced Analytics
+1. Go to Embeddings tab
+2. Select technique (PCA/t-SNE)
+3. Choose dimensions (2D/3D)
+4. Click "Generate Projection"
+5. Explore explained variance
 
-# Run with Docker Compose
-make docker-compose-up
-```
+### Diagnostic Analysis
+1. Visit Diagnostics tab
+2. View correlation heatmaps
+3. Analyze trait distributions
+4. Identify statistical outliers
+5. Export insights
 
-## Health Checks & Monitoring
+## 🤝 Contributing
 
-All services include health checks:
+### Development Setup
+1. Fork the repository
+2. Create feature branch
+3. Implement changes
+4. Add tests
+5. Submit pull request
 
-- **API**: `GET /health` endpoint
-- **UI**: HTTP endpoint on port 8081
-- **NGINX**: `GET /health` endpoint
+### Code Standards
+- **Type Hints**: Full type annotation
+- **Documentation**: Comprehensive docstrings
+- **Testing**: Unit and integration tests
+- **Linting**: Black, isort, flake8
 
-View service status:
+## 📄 License
 
-```bash
-# Docker Compose
-docker-compose ps
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-# Individual containers
-docker ps
+## 🙏 Acknowledgments
 
-# Health check logs
-docker-compose logs api | grep health
-```
-
-## License
-
-See [LICENSE](LICENSE) file.
+- **NiceGUI**: Modern Python web framework
+- **Plotly**: Interactive visualization library
+- **scikit-learn**: Machine learning toolkit
+- **FastAPI**: High-performance web framework
